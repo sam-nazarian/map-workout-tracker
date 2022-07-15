@@ -85,13 +85,16 @@ class App {
   #workouts = [];
 
   constructor() {
+    // Get user's position
     this._getPosition();
 
+    //Get data from local storage
+    this._getLocalStorage();
+
+    //Attach Event Handlers
     //whenever form is submitted (could be done by pressing enter)
     form.addEventListener('submit', this._newWorkout.bind(this)); //this keyword is gonna of the dom elm that it is attached
-
     inputType.addEventListener('change', this._toggleElevationField);
-
     containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   }
   _getPosition() {
@@ -133,6 +136,10 @@ class App {
 
     // Handling clicks on map
     this.#map.on('click', this._showForm.bind(this));
+
+    this.#workouts.forEach(work=>{
+      this._renderWorkoutMarker(work)
+    })
   }
   _showForm(mapE) {
     this.#mapEvent = mapE; //has coordinates of when the event happened
@@ -166,7 +173,7 @@ class App {
     //helper function, helps us do a longer task for us, just in a function
     const isInputValid = (...inputs) => {
       for(let i=0; i<inputs.length; i++){
-        if( !Number.isFinite(inputs[i]) || inputs[i]<0 ) return false;
+        if( !Number.isFinite(inputs[i]) || inputs[i]<0 || inputs[i] == '') return false;
       }
       return true;
     }
@@ -209,6 +216,9 @@ class App {
 
     // Hide form + clear input fields
     this._hideForm();
+
+    //Set local storage to all workouts
+    this._setLocalStorage();
   }
 
   _renderWorkoutMarker(workout) {
@@ -292,7 +302,33 @@ class App {
     })
 
     //using public interface
-    workout.click();
+    // workout.click();
+  }
+
+  _setLocalStorage(){
+    //local storage is an api that the browser gives us, local storage is blocking
+    //don't store large amounts of data there, or it'll slow down browser
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts)) //key, value
+  }
+
+  _getLocalStorage(){
+    //converting object to string loses prototype chain
+    //the fix would be to loop over data, and use that data to create a new Workout(Running/Cycling) object, that would fix the prototype chain
+    const data = JSON.parse(localStorage.getItem('workouts'));
+    // console.log(data);
+
+    if(!data) return;
+    this.#workouts = data; //workouts arr empty at beggining
+
+
+    this.#workouts.forEach(work => {
+      this._renderWorkout(work); //render wworkouts on the website
+    })
+  }
+
+  reset(){
+    localStorage.removeItem('workouts');
+    location.reload(); //reload page programatically
   }
 }
 
