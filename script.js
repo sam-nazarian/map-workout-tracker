@@ -14,6 +14,7 @@ const inputElevation = document.querySelector('.form__input--elevation');
 class Workout {
   date = new Date();
   id = (Date.now() + '').slice(-10); //getting last 10 numbers
+  clicks = 0;
 
   constructor(coords, distance, duration) {
     this.coords = coords; // [lat, lng]
@@ -27,6 +28,10 @@ class Workout {
     // prettier-ignore(this will ignore the next line)
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${months[this.date.getMonth()]} ${this.date.getDate()}`
+  }
+
+  click(){
+    this.clicks++;
   }
 }
 
@@ -75,6 +80,7 @@ class Cycling extends Workout {
 class App {
   //class fields
   #map;
+  #mapZoomLevel = 13;
   #mapEvent; //has coordinates of when the event/click happened
   #workouts = [];
 
@@ -85,6 +91,8 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this)); //this keyword is gonna of the dom elm that it is attached
 
     inputType.addEventListener('change', this._toggleElevationField);
+
+    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   }
   _getPosition() {
     if (navigator.geolocation) {
@@ -106,7 +114,7 @@ class App {
     // console.log(`https://www.google.ca/maps/@${latitude},${longitude}`);
 
     // console.log(this);
-    this.#map = L.map('map').setView([latitude, longitude], 13);
+    this.#map = L.map('map').setView([latitude, longitude], this.#mapZoomLevel);
 
     // L is a nameSpace that Leaflet gives us
     // L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
@@ -139,7 +147,7 @@ class App {
     //the animations. Give illusion of form being replaced by the workout activity.
     form.style.display = 'none';
     form.classList.add('hidden');
-    setTimeout(()=>{form.style.display = 'grid'},1000)
+    setTimeout(()=>{form.style.display = 'grid'}, 1)
 
   }
   _toggleElevationField() {
@@ -222,51 +230,6 @@ class App {
   }
 
   _renderWorkout(workout) {
-
-    // console.log(workout);
-    // let html = `
-    // <li class="workout workout--${workout.type}" data-id="${workout.id}">
-    //       <h2 class="workout__title">${workout.description}</h2>
-    //       <div class="workout__details">
-    //         <span class="workout__icon">${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'}</span>
-    //         <span class="workout__value">${workout.distance}</span>
-    //         <span class="workout__unit">km</span>
-    //       </div>
-    //       <div class="workout__details">
-    //         <span class="workout__icon">⏱</span>
-    //         <span class="workout__value">${workout.duration}</span>
-    //         <span class="workout__unit">min</span>
-    //       </div>
-    //       `
-
-    // if (workout.type === 'running') 
-    // html += `
-    //   <div class="workout__details">
-    //     <span class="workout__icon">⚡️</span>
-    //     <span class="workout__value">${workout.pace.toFixed(1)}</span>
-    //     <span class="workout__unit">min/km</span>
-    //   </div>
-    //   <div class="workout__details">
-    //     <span class="workout__icon">🦶🏼</span>
-    //     <span class="workout__value">${workout.cadence}</span>
-    //     <span class="workout__unit">spm</span>
-    //   </div>
-    //   </li>
-    //   `
-
-    //   if(workout.type === 'cycling') 
-    //   html += `
-    //   <div class="workout__details">
-    //     <span class="workout__icon">⚡️</span>
-    //     <span class="workout__value">${workout.speed.toFixed(1)}</span>
-    //     <span class="workout__unit">km/h</span>
-    //   </div>
-    //   <div class="workout__details">
-    //     <span class="workout__icon">⛰</span>
-    //     <span class="workout__value">${workout.elevationGain}</span>
-    //     <span class="workout__unit">m</span>
-    //   </div>`;
-
     const html = `
     <li class="workout workout--${workout.type}" data-id="${workout.id}">
     <h2 class="workout__title">${workout.description}</h2>
@@ -309,6 +272,27 @@ class App {
     // console.log(html);
     //after the form elm
     form.insertAdjacentHTML('afterend', html)
+  }
+
+  _moveToPopup(e){
+    //even if li or div is clicked it will go up to the li (as that's what contains the class workout)
+    const workoutEl = e.target.closest('.workout');
+    if(!workoutEl) return;
+    // console.log(workoutEl);
+
+    //find workout object with matching id
+    const workout = this.#workouts.find( (work) => work.id === workoutEl.dataset.id);
+    // console.log(workout);
+
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1
+      }
+    })
+
+    //using public interface
+    workout.click();
   }
 }
 
